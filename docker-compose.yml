@@ -1,0 +1,92 @@
+name: mcp-web-tool
+
+services:
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: web-tool-valkey
+    command: valkey-server --save 30 1 --loglevel warning
+    volumes:
+      - valkey-data:/data
+    networks:
+      - web-tool-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: web-tool-searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+      - SEARXNG_SECRET=${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    ports:
+      - "8080:8080"
+    networks:
+      - web-tool-net
+    depends_on:
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  crawl4ai:
+    # Pin to a specific release in production, e.g. unclecode/crawl4ai:0.7.4
+    image: unclecode/crawl4ai:latest
+    container_name: web-tool-crawl4ai
+    environment:
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}
+    ports:
+      - "11235:11235"
+    shm_size: "1g"
+    networks:
+      - web-tool-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:11235/health')\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  web-mcp:
+    build: ./mcp
+    container_name: web-tool-mcp
+    environment:
+      - SEARXNG_URL=http://searxng:8080
+      - CRAWL4AI_URL=http://crawl4ai:11235
+      - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}
+      - MCP_TRANSPORT=${MCP_TRANSPORT:-http}
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+      - MCP_CACHE_TTL=${MCP_CACHE_TTL:-300}
+      - EXTRACT_CACHE_TTL=${EXTRACT_CACHE_TTL:-1800}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-30}
+      - EXTRACT_TIMEOUT=${EXTRACT_TIMEOUT:-60}
+      - MAX_CONCURRENCY=${MAX_CONCURRENCY:-5}
+    ports:
+      - "8000:8000"
+    networks:
+      - web-tool-net
+    depends_on:
+      searxng:
+        condition: service_healthy
+      crawl4ai:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  web-tool-net:
+    driver: bridge
+
+volumes:
+  valkey-data:

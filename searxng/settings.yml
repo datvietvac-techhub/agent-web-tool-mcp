@@ -1,0 +1,42 @@
+# SearXNG configuration for the MCP web-tool service.
+# Inherits SearXNG's built-in defaults; only the keys below are overridden.
+use_default_settings: true
+
+general:
+  instance_name: "web-tool-searxng"
+  enable_metrics: false
+
+server:
+  # The docker entrypoint replaces "ultrasecretkey" with the SEARXNG_SECRET env var.
+  secret_key: "ultrasecretkey"
+  bind_address: "0.0.0.0"
+  port: 8080
+  # This instance is only reachable on the internal compose network, so the
+  # bot-detection limiter is unnecessary and would block our own JSON requests.
+  limiter: false
+  public_instance: false
+  image_proxy: false
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  # JSON output is disabled by default in SearXNG. Required for the API.
+  formats:
+    - html
+    - json
+
+# Shared cache / limiter backend (Valkey speaks the Redis protocol).
+valkey:
+  url: redis://valkey:6379/0
+
+ui:
+  static_use_hash: true
+
+# Tune which engines are used here to control search quality, e.g.:
+# engines:
+#   - name: google
+#     disabled: false
+#   - name: bing
+#     disabled: false
+#   - name: duckduckgo
+#     disabled: false

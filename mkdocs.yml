@@ -9,6 +9,9 @@ theme:
   name: material
   custom_dir: docs/overrides
   language: en
+  icon:
+    logo: material/web
+    repo: fontawesome/brands/github
   features:
     - navigation.sections
     - navigation.indexes

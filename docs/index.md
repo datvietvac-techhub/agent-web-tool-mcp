@@ -1,5 +1,5 @@
 ---
-title: MCP Web Tools — Self-Hosted Web Search & Extraction MCP Server for AI Agents
+title: MCP Web Tools — Self-Hosted Web Search & Extraction MCP
 description: Self-hosted Model Context Protocol (MCP) server giving AI agents free web_search and web_extractor tools — search via SearXNG, extract via Crawl4AI, no paid API keys.
 ---
 

@@ -2,6 +2,23 @@
 
 {% block extrahead %}
   {{ super() }}
+
+  {% set og_title = page.meta.title if page.meta and page.meta.title else (page.title if page.title else config.site_name) %}
+  {% set og_description = page.meta.description if page.meta and page.meta.description else config.site_description %}
+  {% set og_url = page.canonical_url if page.canonical_url else config.site_url %}
+
+  <meta property="og:title" content="{{ og_title }}">
+  <meta property="og:description" content="{{ og_description }}">
+  <meta property="og:url" content="{{ og_url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ config.site_name }}">
+  <meta property="og:locale" content="en_US">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ og_title }}">
+  <meta name="twitter:description" content="{{ og_description }}">
+
+  {% if page and page.is_homepage %}
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -63,4 +80,66 @@
     ]
   }
   </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "{{ config.site_name }}",
+    "url": "{{ config.site_url }}",
+    "description": "{{ config.site_description }}",
+    "inLanguage": "en",
+    "publisher": {
+      "@type": "Organization",
+      "name": "datvietvac-techhub",
+      "url": "https://github.com/datvietvac-techhub"
+    }
+  }
+  </script>
+  {% else %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "{{ og_title }}",
+    "description": "{{ og_description }}",
+    "url": "{{ og_url }}",
+    "inLanguage": "en",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "{{ config.site_name }}",
+      "url": "{{ config.site_url }}"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "datvietvac-techhub",
+      "url": "https://github.com/datvietvac-techhub"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "datvietvac-techhub",
+      "url": "https://github.com/datvietvac-techhub"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "{{ config.site_name }}",
+        "item": "{{ config.site_url }}"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "{{ og_title }}",
+        "item": "{{ og_url }}"
+      }
+    ]
+  }
+  </script>
+  {% endif %}
 {% endblock %}

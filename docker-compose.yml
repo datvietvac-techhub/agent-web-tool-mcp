@@ -24,8 +24,6 @@ services:
       - SEARXNG_SECRET=${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
     volumes:
       - ./searxng:/etc/searxng:rw
-    ports:
-      - "8080:8080"
     networks:
       - web-tool-net
     depends_on:
@@ -46,8 +44,6 @@ services:
     container_name: web-tool-crawl4ai
     environment:
       - CRAWL4AI_API_TOKEN=${CRAWL4AI_API_TOKEN:-}
-    ports:
-      - "11235:11235"
     shm_size: "1g"
     networks:
       - web-tool-net

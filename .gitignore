@@ -9,8 +9,15 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+.pytest_cache/
 
 # Editor / OS
 .DS_Store
 .idea/
 .vscode/
+
+# Local agent / IDE state
+.claude/
+
+# Build output
+site/

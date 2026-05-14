@@ -44,13 +44,14 @@ build: ## (Re)build the web-mcp image
 pull: ## Pull fresh upstream images (valkey, searxng, crawl4ai)
 	$(COMPOSE) pull valkey searxng crawl4ai
 
-smoke: ## Hit all three HTTP endpoints to confirm they respond
+smoke: ## Hit all three endpoints to confirm they respond
 	@set -a; [ -f .env ] && . ./.env; set +a; \
 	MCP_PORT=$${MCP_PORT:-8000}; \
 	set -e; \
-	echo "SearXNG  :" ; curl -fsS -m 15 "http://localhost:8080/search?q=hello&format=json" >/dev/null && echo "  ok" ; \
-	echo "Crawl4AI :" ; curl -fsS -m 30 -X POST "http://localhost:11235/md" -H 'Content-Type: application/json' -d '{"url":"https://example.com","f":"fit"}' >/dev/null && echo "  ok" ; \
-	echo "MCP      :" ; printf "  HTTP %s (406/400/200 expected on bare GET)\n" "$$(curl -s -o /dev/null -w '%{http_code}' -m 10 http://localhost:$$MCP_PORT/mcp)"
+	echo "SearXNG  :" ; $(COMPOSE) exec -T searxng wget -q -O /dev/null "http://localhost:8080/search?q=hello&format=json" ; echo "  ok" ; \
+	echo "Crawl4AI :" ; $(COMPOSE) exec -T crawl4ai python -c "import urllib.request; req=urllib.request.Request('http://localhost:11235/md', data=b'{\"url\":\"https://example.com\",\"f\":\"fit\"}', headers={'Content-Type':'application/json'}, method='POST'); urllib.request.urlopen(req, timeout=30).read()" >/dev/null ; echo "  ok" ; \
+	echo "MCP      :" ; code="$$(curl -s -o /dev/null -w '%{http_code}' -m 10 http://localhost:$$MCP_PORT/mcp)" ; \
+	case "$$code" in 200|400|406) printf "  HTTP %s (ok)\n" "$$code" ;; *) printf "  HTTP %s (expected 200/400/406)\n" "$$code" >&2; exit 1 ;; esac
 
 secret: ## Generate a SEARXNG_SECRET value and print it (does not write .env)
 	@openssl rand -hex 32 2>/dev/null || python3 -c 'import secrets;print(secrets.token_hex(32))'

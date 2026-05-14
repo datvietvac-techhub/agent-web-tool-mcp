@@ -166,7 +166,7 @@ if [ "$DO_CHECKS" -eq 1 ]; then
     elif command -v lsof >/dev/null 2>&1;   then lsof -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
     else return 1; fi
   }
-  for p in 8080 11235 8000; do
+  for p in 8000; do
     if port_busy "$p"; then
       # ours is fine — only complain about foreign listeners
       if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q ":$p->"; then
@@ -226,8 +226,8 @@ cat <<EOF
     make playground   # launch the FastAPI dev API on :${play_port:-8001}
 
   ${BOLD}Endpoints (once up)${RST}
-    SearXNG    http://localhost:8080
-    Crawl4AI   http://localhost:11235   (playground: /playground)
+    SearXNG    internal: http://searxng:8080
+    Crawl4AI   internal: http://crawl4ai:11235
     MCP        http://localhost:${mcp_port:-8000}/mcp
 
 EOF

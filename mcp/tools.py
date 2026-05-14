@@ -10,6 +10,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from cachetools import TTLCache
+from url_policy import validate_fetch_url
 
 SEARXNG_URL = os.environ.get("SEARXNG_URL", "http://localhost:8080").rstrip("/")
 CRAWL4AI_URL = os.environ.get("CRAWL4AI_URL", "http://localhost:11235").rstrip("/")
@@ -131,6 +132,24 @@ async def web_search_impl(
 async def _extract_one(
     sem: asyncio.Semaphore, url: str, mode: str, query: str | None, bypass_cache: bool
 ) -> dict:
+    validation_error = validate_fetch_url(url)
+    if validation_error:
+        return {
+            "url": url,
+            "status": "error",
+            "error": validation_error,
+            "markdown": "",
+            "word_count": 0,
+        }
+    if mode in {"bm25", "llm"} and not (query or "").strip():
+        return {
+            "url": url,
+            "status": "error",
+            "error": f"query is required for {mode} mode",
+            "markdown": "",
+            "word_count": 0,
+        }
+
     norm = _normalize_url(url)
     cache_key = (norm, mode, query)
     if not bypass_cache and _extract_cache is not None and cache_key in _extract_cache:
@@ -189,7 +208,7 @@ async def web_extractor_impl(
     bypass_cache: bool = False,
 ) -> dict:
     url_list = [urls] if isinstance(urls, str) else list(urls)
-    url_list = [u.strip() for u in url_list if u and u.strip()]
+    url_list = [u.strip() if isinstance(u, str) else "" for u in url_list]
     if not url_list:
         return {"results": [], "error": "no urls provided"}
     if len(url_list) > MAX_URLS_PER_CALL:

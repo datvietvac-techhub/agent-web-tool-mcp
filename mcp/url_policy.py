@@ -48,6 +48,8 @@ def validate_fetch_url(url: str) -> str | None:
             if ip_obj.is_loopback or ip_obj.is_private or ip_obj.is_link_local:
                 return "url resolves to a disallowed internal IP address"
     except (socket.gaierror, ValueError):
-        pass
+        # If DNS resolution or IP parsing fails, keep policy fail-open for now:
+        # only positively identified internal IPs are blocked.
+        return None
 
     return None

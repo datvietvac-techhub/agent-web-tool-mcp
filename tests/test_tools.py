@@ -289,5 +289,23 @@ def test_validate_fetch_url_ssrf_protection():
         == "url resolves to a disallowed internal IP address"
     )
 
+    # Block unspecified, reserved, and multicast IP addresses
+    assert (
+        validate_fetch_url("http://0.0.0.0")
+        == "url resolves to a disallowed internal IP address"
+    )
+    assert (
+        validate_fetch_url("http://224.0.0.1")
+        == "url resolves to a disallowed internal IP address"
+    )
+    assert (
+        validate_fetch_url("http://240.0.0.1")
+        == "url resolves to a disallowed internal IP address"
+    )
+    assert (
+        validate_fetch_url("http://[::]")
+        == "url resolves to a disallowed internal IP address"
+    )
+
     # Invalid resolution is allowed through here, relying on HTTP client to fail
     assert validate_fetch_url("http://this-domain-does-not-exist.com") is None

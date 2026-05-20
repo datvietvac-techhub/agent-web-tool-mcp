@@ -29,7 +29,9 @@ We will acknowledge valid reports as soon as possible, investigate privately, an
 
 By default, only `web-mcp` is published to the host (MCP at `/mcp`, REST at `/api/v1/*`); SearXNG, Crawl4AI, and Valkey stay on the Docker network. If you expose the server outside a trusted local environment, set `API_TOKEN` for REST endpoints and/or put the service behind a VPN, firewall rule, or authenticated reverse proxy.
 
-`web_extractor` performs lightweight URL validation before forwarding requests to Crawl4AI. Crawl4AI domain/link filters are useful for crawl behavior, but they are not treated as this project's SSRF protection boundary.
+`web_extractor` performs lightweight URL validation before calling extract providers. Crawl4AI domain/link filters are useful for crawl behavior, but they are not treated as this project's SSRF protection boundary.
+
+Do **not** commit `config/providers.yaml` — it may contain API keys. Prefer `${ENV_VAR}` references and keep `.env` out of version control. `config/providers.yaml.example` is safe to commit.
 
 ## Scope
 

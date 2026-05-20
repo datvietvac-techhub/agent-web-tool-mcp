@@ -9,6 +9,8 @@ from cachetools import TTLCache
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "mcp"))
 
 import tools  # noqa: E402
+from providers import chain as provider_chain  # noqa: E402
+from providers import http as provider_http  # noqa: E402
 from url_policy import validate_fetch_url  # noqa: E402
 
 
@@ -57,8 +59,11 @@ class FakeClient:
 def reset_tool_state(monkeypatch):
     monkeypatch.setattr(tools, "_search_cache", TTLCache(maxsize=512, ttl=300))
     monkeypatch.setattr(tools, "_extract_cache", TTLCache(maxsize=1024, ttl=1800))
-    monkeypatch.setattr(tools, "SEARXNG_URL", "http://searxng:8080")
-    monkeypatch.setattr(tools, "CRAWL4AI_URL", "http://crawl4ai:11235")
+    monkeypatch.setattr(provider_http, "SEARXNG_URL", "http://searxng:8080")
+    monkeypatch.setattr(provider_http, "CRAWL4AI_URL", "http://crawl4ai:11235")
+    monkeypatch.setattr(provider_http, "_client", None)
+    monkeypatch.setenv("PROVIDERS_CONFIG", "/nonexistent/providers.yaml")
+    provider_chain.reload_config()
 
 
 def test_normalize_url_lowercases_and_preserves_query():
@@ -83,7 +88,7 @@ def test_validate_fetch_url_accepts_only_http_urls():
 
 def test_web_search_empty_query_skips_network(monkeypatch):
     client = FakeClient()
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     out = run(tools.web_search_impl("   "))
 
@@ -108,7 +113,7 @@ def test_web_search_clamps_and_deduplicates(monkeypatch):
             )
         ]
     )
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     out = run(tools.web_search_impl("hello", num_results=999))
 
@@ -120,7 +125,7 @@ def test_web_search_clamps_and_deduplicates(monkeypatch):
 
 def test_web_search_errors_are_values(monkeypatch):
     client = FakeClient(get_responses=[FakeResponse({}, status_code=403)])
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     out = run(tools.web_search_impl("hello"))
 
@@ -128,9 +133,46 @@ def test_web_search_errors_are_values(monkeypatch):
     assert "HTTP 403" in out["error"]
 
 
+def test_web_search_explicit_provider_no_fallback(monkeypatch):
+    client = FakeClient(
+        get_responses=[
+            FakeResponse({"results": [{"title": "Local", "url": "https://local.test"}]}),
+            FakeResponse({"results": [{"title": "Should not run", "url": "https://x.test"}]}),
+        ]
+    )
+    monkeypatch.setattr(provider_http, "_client", client)
+
+    out = run(tools.web_search_impl("hello", provider="searxng"))
+
+    assert out["provider"] == "searxng"
+    assert len(client.get_calls) == 1
+
+
+def test_web_search_unknown_provider_returns_error(monkeypatch):
+    client = FakeClient()
+    monkeypatch.setattr(provider_http, "_client", client)
+
+    out = run(tools.web_search_impl("hello", provider="invalid"))
+
+    assert "unknown search provider" in out["error"]
+    assert client.get_calls == []
+
+
+def test_web_extractor_explicit_provider(monkeypatch):
+    client = FakeClient(
+        post_responses=[FakeResponse({"url": "https://example.com", "markdown": "ok"})]
+    )
+    monkeypatch.setattr(provider_http, "_client", client)
+
+    out = run(tools.web_extractor_impl("https://example.com", provider="crawl4ai"))
+
+    assert out["provider"] == "crawl4ai"
+    assert out["results"][0]["markdown"] == "ok"
+
+
 def test_web_search_cache_hit_skips_second_network(monkeypatch):
     client = FakeClient(get_responses=[FakeResponse({"results": [{"title": "A", "url": "https://a.test"}]})])
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     first = run(tools.web_search_impl("hello"))
     second = run(tools.web_search_impl("hello"))
@@ -146,7 +188,7 @@ def test_web_extractor_preserves_order_and_payload(monkeypatch):
             FakeResponse({"url": "https://b.test", "markdown": "gamma"}),
         ]
     )
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     out = run(tools.web_extractor_impl(["https://a.test", "https://b.test"], mode="raw"))
 
@@ -158,7 +200,7 @@ def test_web_extractor_preserves_order_and_payload(monkeypatch):
 def test_web_extractor_truncates_to_max_urls(monkeypatch):
     responses = [FakeResponse({"url": f"https://{i}.test", "markdown": "ok"}) for i in range(20)]
     client = FakeClient(post_responses=responses)
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     out = run(tools.web_extractor_impl([f"https://{i}.test" for i in range(25)]))
 
@@ -168,7 +210,7 @@ def test_web_extractor_truncates_to_max_urls(monkeypatch):
 
 def test_web_extractor_invalid_url_skips_crawl4ai(monkeypatch):
     client = FakeClient()
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     out = run(tools.web_extractor_impl("file:///etc/passwd"))
 
@@ -179,7 +221,7 @@ def test_web_extractor_invalid_url_skips_crawl4ai(monkeypatch):
 
 def test_web_extractor_empty_url_preserves_result(monkeypatch):
     client = FakeClient()
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     out = run(tools.web_extractor_impl(["", "https://example.com"]))
 
@@ -191,7 +233,7 @@ def test_web_extractor_empty_url_preserves_result(monkeypatch):
 
 def test_web_extractor_bm25_requires_query(monkeypatch):
     client = FakeClient()
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     out = run(tools.web_extractor_impl("https://example.com", mode="bm25"))
 
@@ -207,7 +249,7 @@ def test_web_extractor_bypass_cache_refetches(monkeypatch):
             FakeResponse({"url": "https://example.com", "markdown": "second"}),
         ]
     )
-    monkeypatch.setattr(tools, "_client", client)
+    monkeypatch.setattr(provider_http, "_client", client)
 
     first = run(tools.web_extractor_impl("https://example.com", bypass_cache=True))
     second = run(tools.web_extractor_impl("https://example.com", bypass_cache=True))

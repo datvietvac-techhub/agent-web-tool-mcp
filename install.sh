@@ -187,6 +187,16 @@ else
   info ".env already exists — leaving it as is"
 fi
 
+# ── 2b. providers.yaml ────────────────────────────────────────────────────────
+step "Configuring provider fallback chains"
+if [ ! -f config/providers.yaml ]; then
+  mkdir -p config
+  python3 scripts/config_provider.py --yes
+  ok "created config/providers.yaml (local-only; run make config to add API keys)"
+else
+  info "config/providers.yaml already exists — leaving it as is"
+fi
+
 # ── 3. SEARXNG_SECRET ─────────────────────────────────────────────────────────
 gen_secret() {
   if command -v openssl >/dev/null 2>&1; then openssl rand -hex 32

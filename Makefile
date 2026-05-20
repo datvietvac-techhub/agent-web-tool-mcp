@@ -10,7 +10,7 @@ ARGS    ?=
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap install up down restart ps logs build pull smoke secret clean
+.PHONY: help bootstrap install up down restart ps logs build pull smoke secret clean config
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -66,6 +66,9 @@ smoke: ## Hit all endpoints to confirm they respond
 
 secret: ## Generate a SEARXNG_SECRET value and print it (does not write .env)
 	@openssl rand -hex 32 2>/dev/null || python3 -c 'import secrets;print(secrets.token_hex(32))'
+
+config: ## Configure provider fallback (tavily → firecrawl → exa → local)
+	@python3 scripts/config_provider.py
 
 clean: ## Stop the stack AND remove the valkey cache volume
 	$(COMPOSE) down -v

@@ -12,6 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "mcp"))
 import api  # noqa: E402
 import server  # noqa: E402
 import tools  # noqa: E402
+from providers import chain as provider_chain  # noqa: E402
+from providers import http as provider_http  # noqa: E402
 from test_tools import FakeClient, FakeResponse, run  # noqa: E402
 
 
@@ -25,8 +27,11 @@ def client(monkeypatch):
 def reset_tool_state(monkeypatch):
     monkeypatch.setattr(tools, "_search_cache", TTLCache(maxsize=512, ttl=300))
     monkeypatch.setattr(tools, "_extract_cache", TTLCache(maxsize=1024, ttl=1800))
-    monkeypatch.setattr(tools, "SEARXNG_URL", "http://searxng:8080")
-    monkeypatch.setattr(tools, "CRAWL4AI_URL", "http://crawl4ai:11235")
+    monkeypatch.setattr(provider_http, "SEARXNG_URL", "http://searxng:8080")
+    monkeypatch.setattr(provider_http, "CRAWL4AI_URL", "http://crawl4ai:11235")
+    monkeypatch.setattr(provider_http, "_client", None)
+    monkeypatch.setenv("PROVIDERS_CONFIG", "/nonexistent/providers.yaml")
+    provider_chain.reload_config()
 
 
 def test_healthz(client):
@@ -39,7 +44,7 @@ def test_search_happy_path(client, monkeypatch):
     fake = FakeClient(
         get_responses=[FakeResponse({"results": [{"title": "A", "url": "https://a.test"}]})]
     )
-    monkeypatch.setattr(tools, "_client", fake)
+    monkeypatch.setattr(provider_http, "_client", fake)
 
     response = client.post("/api/v1/search", json={"query": "hello", "num_results": 3})
 
@@ -51,7 +56,7 @@ def test_extract_happy_path(client, monkeypatch):
     fake = FakeClient(
         post_responses=[FakeResponse({"url": "https://example.com", "markdown": "hello world"})]
     )
-    monkeypatch.setattr(tools, "_client", fake)
+    monkeypatch.setattr(provider_http, "_client", fake)
 
     response = client.post("/api/v1/extract", json={"urls": "https://example.com"})
 
@@ -67,7 +72,7 @@ def test_search_validation_error(client):
 
 def test_search_upstream_error_is_value(client, monkeypatch):
     fake = FakeClient(get_responses=[FakeResponse({}, status_code=503)])
-    monkeypatch.setattr(tools, "_client", fake)
+    monkeypatch.setattr(provider_http, "_client", fake)
 
     response = client.post("/api/v1/search", json={"query": "hello"})
 
@@ -92,7 +97,7 @@ def test_api_token_required(monkeypatch):
     assert response.status_code == 401
 
     fake = FakeClient(get_responses=[FakeResponse({"results": []})])
-    monkeypatch.setattr(tools, "_client", fake)
+    monkeypatch.setattr(provider_http, "_client", fake)
     response = client.post(
         "/api/v1/search",
         json={"query": "hello"},
@@ -122,7 +127,7 @@ def test_mcp_and_http_parity(monkeypatch):
             )
         ]
     )
-    monkeypatch.setattr(tools, "_client", fake)
+    monkeypatch.setattr(provider_http, "_client", fake)
 
     http_client = TestClient(api.create_app())
     http_out = http_client.post("/api/v1/search", json={"query": "parity"}).json()

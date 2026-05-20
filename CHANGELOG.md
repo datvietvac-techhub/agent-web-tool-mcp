@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Search engine fallback** — YAML-configured provider chains in `config/providers.yaml` for `web_search` and `web_extract` (Tavily → Firecrawl → Exa → local). Hard-failure-only fallback; list order is priority (first = primary).
+- `make config` to write provider chains and optionally prompt for Tavily, Firecrawl, and Exa API keys.
+- Provider adapters under `mcp/providers/` with optional `FALLBACK_VERBOSE` diagnostics.
+
 - Official REST API v1 on the same port as MCP: `POST /api/v1/search`, `POST /api/v1/extract`, `GET /healthz`, OpenAPI at `/docs`.
 - Optional bearer auth for REST via `API_TOKEN` env var.
 - `web-mcp` Docker healthcheck on `/healthz`.

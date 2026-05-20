@@ -56,7 +56,9 @@ services:
       start_period: 40s
 
   web-mcp:
-    build: ./mcp
+    build:
+      context: .
+      dockerfile: mcp/Dockerfile
     container_name: web-tool-mcp
     environment:
       - SEARXNG_URL=http://searxng:8080
@@ -71,6 +73,10 @@ services:
       - EXTRACT_TIMEOUT=${EXTRACT_TIMEOUT:-60}
       - MAX_CONCURRENCY=${MAX_CONCURRENCY:-5}
       - API_TOKEN=${API_TOKEN:-}
+      - PROVIDERS_CONFIG=/app/config/providers.yaml
+      - FALLBACK_VERBOSE=${FALLBACK_VERBOSE:-false}
+    volumes:
+      - ./config/providers.yaml:/app/config/providers.yaml:ro
     ports:
       - "${MCP_PORT:-8000}:${MCP_PORT:-8000}"
     networks:

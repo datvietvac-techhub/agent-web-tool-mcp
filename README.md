@@ -44,6 +44,18 @@ The MCP server is a thin [FastMCP](https://github.com/jlowin/fastmcp) wrapper th
 - Parallel extraction — `web_extractor` fans out up to `MAX_CONCURRENCY` URLs per call, preserves input order, returns per-URL status.
 - Official REST API — `POST /api/v1/search` and `POST /api/v1/extract` on the same port as MCP for agents that prefer plain HTTP; OpenAPI at `/docs`.
 - Pinnable images — `VALKEY_IMAGE`, `SEARXNG_IMAGE`, `CRAWL4AI_IMAGE` in `.env` for reproducible deploys.
+- **Hybrid provider fallback** — optional Tavily / Firecrawl / Exa API keys with self-hosted SearXNG / Crawl4AI as last resort (`config/providers.yaml`).
+
+## Hybrid mode (SaaS + self-hosted fallback)
+
+Use paid search/extract APIs as primary backends and keep local SearXNG / Crawl4AI as the final fallback when a provider hard-fails:
+
+```bash
+make config   # prompts for Tavily / Firecrawl / Exa keys (Enter to skip any)
+make up
+```
+
+Fallback order is fixed: **tavily → firecrawl → exa → local** (SearXNG for search, Crawl4AI for extract). Skipped providers are omitted at runtime until you re-run `make config` or edit [`config/providers.yaml`](config/providers.yaml).
 
 ## How to install the MCP server for Claude Code
 

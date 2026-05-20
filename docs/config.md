@@ -5,7 +5,58 @@ description: Full configuration reference for MCP Web Tools — every .env varia
 
 # Configuration
 
-Everything is set via `.env` (see [`.env.example`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/.env.example)).
+Configuration is split between `.env` (service URLs, timeouts, secrets) and [`config/providers.yaml`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/config/providers.yaml.example) (search/extract fallback chains).
+
+## Provider fallback (`config/providers.yaml`)
+
+Ordered lists define which backend runs first. **First entry = primary**, **last = final fallback**. The runner tries each provider top-to-bottom and stops on the first successful response. Reordering the YAML changes priority.
+
+```bash
+make config   # write providers.yaml; prompts for Brave and Tavily keys (Enter to skip)
+```
+
+Order is **fixed**: tavily → firecrawl → exa → local (`searxng` / `crawl4ai`). You only choose whether to supply API keys for the SaaS providers.
+
+| chain key | providers (v1) |
+|---|---|
+| `web_search` | `tavily`, `firecrawl`, `exa`, `searxng` (local) |
+| `web_extract` | `tavily`, `firecrawl`, `exa`, `crawl4ai` (local) |
+
+Example:
+
+```yaml
+web_search:
+  - provider: tavily
+    credential: "${TAVILY_API_KEY}"
+  - provider: firecrawl
+    credential: "${FIRECRAWL_API_KEY}"
+  - provider: exa
+    credential: "${EXA_API_KEY}"
+  - provider: searxng
+
+web_extract:
+  - provider: tavily
+    credential: "${TAVILY_API_KEY}"
+  - provider: firecrawl
+    credential: "${FIRECRAWL_API_KEY}"
+  - provider: exa
+    credential: "${EXA_API_KEY}"
+  - provider: crawl4ai
+```
+
+| field | notes |
+|---|---|
+| `provider` | `tavily`, `firecrawl`, `exa`, `searxng`, or `crawl4ai` |
+| `credential` | API key literal or `${ENV_VAR}` expanded at load time. Optional for local providers. |
+
+**Fallback rules:** only **hard failures** advance the chain (HTTP 4xx/5xx, timeout, transport error). Empty results, validation errors, and per-URL extract errors do **not** trigger fallback. SaaS providers without a credential are skipped. `bm25` / `llm` extract modes skip SaaS providers and use `crawl4ai` when it is in the chain.
+
+| var | default | purpose |
+|---|---|---|
+| `PROVIDERS_CONFIG` | `config/providers.yaml` | path to the YAML file (`/app/config/providers.yaml` in Docker) |
+| `FALLBACK_VERBOSE` | `false` | include `fallback_attempts` in tool responses when `true` |
+
+`config/providers.yaml` is gitignored — commit only [`config/providers.yaml.example`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/config/providers.yaml.example).
 
 ## Environment variables
 
@@ -18,9 +69,13 @@ Everything is set via `.env` (see [`.env.example`](https://github.com/datvietvac
 | `MCP_PORT` | `8000` | host port for MCP + REST API (also used for `make smoke`) |
 | `MCP_CACHE_TTL` | `300` | `web_search` cache TTL in seconds (`0` disables) |
 | `EXTRACT_CACHE_TTL` | `1800` | `web_extractor` cache TTL in seconds (`0` disables) |
-| `REQUEST_TIMEOUT` | `30` | SearXNG request timeout (s) |
-| `EXTRACT_TIMEOUT` | `60` | Crawl4AI request timeout (s) |
-| `MAX_CONCURRENCY` | `5` | parallel Crawl4AI requests per `web_extractor` call |
+| `REQUEST_TIMEOUT` | `30` | outbound search request timeout (s) |
+| `EXTRACT_TIMEOUT` | `60` | outbound extract request timeout (s) |
+| `MAX_CONCURRENCY` | `5` | parallel extract requests per `web_extractor` call (Crawl4AI) |
+| `FALLBACK_VERBOSE` | `false` | include `fallback_attempts` in search/extract responses |
+| `TAVILY_API_KEY` | _(empty)_ | optional; referenced from YAML via `${TAVILY_API_KEY}` |
+| `FIRECRAWL_API_KEY` | _(empty)_ | optional; referenced from YAML via `${FIRECRAWL_API_KEY}` |
+| `EXA_API_KEY` | _(empty)_ | optional; referenced from YAML via `${EXA_API_KEY}` |
 | `VALKEY_IMAGE` | `valkey/valkey:8-alpine` | pin Valkey image |
 | `SEARXNG_IMAGE` | `searxng/searxng:latest` | pin SearXNG image |
 | `CRAWL4AI_IMAGE` | `unclecode/crawl4ai:latest` | pin Crawl4AI image (recommended for prod) |
@@ -33,11 +88,11 @@ Search quality is tuned in [`searxng/settings.yml`](https://github.com/datvietva
 
 ## Tool implementations
 
-Core logic lives in [`mcp/tools.py`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/tools.py). MCP (`server.py`) and HTTP (`api.py`) are thin exposers that delegate to the same functions.
+Core logic lives in [`mcp/tools.py`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/tools.py) with provider adapters under [`mcp/providers/`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/providers/). MCP (`server.py`) and HTTP (`api.py`) are thin exposers that delegate to the same functions.
 
 ### `web_search`
 
-Queries the self-hosted SearXNG instance and returns ranked, de-duplicated results. Cached in-process for `MCP_CACHE_TTL` seconds. On failure the dict includes an `"error"` key and `"results": []`.
+Runs the `web_search` chain from `config/providers.yaml` and returns ranked, de-duplicated results. Cached in-process for `MCP_CACHE_TTL` seconds. Successful responses include `"provider"` (which backend answered). On total chain failure the dict includes an `"error"` key and `"results": []`.
 
 | param | type | default | notes |
 |---|---|---|---|
@@ -46,6 +101,7 @@ Queries the self-hosted SearXNG instance and returns ranked, de-duplicated resul
 | `categories` | string | `"general"` | SearXNG category: `general`, `news`, `science`, `it`, `images`, … |
 | `language` | string | `"auto"` | `"en"`, `"vi"`, …; `"auto"` lets SearXNG decide |
 | `time_range` | string \| null | `null` | `"day"`, `"week"`, `"month"`, `"year"` |
+| `provider` | string \| null | `null` | force one backend: `tavily`, `firecrawl`, `exa`, `searxng` (no fallback) |
 
 Returns:
 
@@ -65,7 +121,7 @@ Results are de-duplicated by normalized URL and truncated to `num_results`.
 
 ### `web_extractor`
 
-Fetches one or more URLs via Crawl4AI and returns clean Markdown. URLs are fetched in parallel up to `MAX_CONCURRENCY`, max 20 per call. Cached for `EXTRACT_CACHE_TTL` seconds.
+Runs the `web_extract` chain from `config/providers.yaml`. Crawl4AI fetches in parallel up to `MAX_CONCURRENCY`; Tavily and Exa extract in batch; Firecrawl scrapes per URL. Max 20 URLs per call. Cached for `EXTRACT_CACHE_TTL` seconds per URL. Successful batch responses include `"provider"`.
 
 | param | type | default | notes |
 |---|---|---|---|
@@ -73,6 +129,7 @@ Fetches one or more URLs via Crawl4AI and returns clean Markdown. URLs are fetch
 | `mode` | string | `"fit"` | `fit` (pruned main content), `raw` (full page), `bm25` / `llm` (relevance-filtered — requires `query`) |
 | `query` | string \| null | `null` | focus query for `bm25` / `llm` mode |
 | `bypass_cache` | bool | `false` | skip the local cache and ask Crawl4AI to re-fetch |
+| `provider` | string \| null | `null` | force one backend: `tavily`, `firecrawl`, `exa`, `crawl4ai` (no fallback) |
 
 Returns:
 

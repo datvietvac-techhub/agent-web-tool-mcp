@@ -1,0 +1,20 @@
+# Provider fallback — order is fixed: tavily → firecrawl → exa → local (first = primary).
+# Generate your file: make config
+
+web_search:
+  - provider: tavily
+    credential: "${TAVILY_API_KEY}"
+  - provider: firecrawl
+    credential: "${FIRECRAWL_API_KEY}"
+  - provider: exa
+    credential: "${EXA_API_KEY}"
+  - provider: searxng
+
+web_extract:
+  - provider: tavily
+    credential: "${TAVILY_API_KEY}"
+  - provider: firecrawl
+    credential: "${FIRECRAWL_API_KEY}"
+  - provider: exa
+    credential: "${EXA_API_KEY}"
+  - provider: crawl4ai

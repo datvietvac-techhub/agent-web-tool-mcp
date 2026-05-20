@@ -11,11 +11,14 @@ Four services run on a single bridge network (`web-tool-net`). Agents talk to `w
 
 ## Core vs exposers
 
-There is one search implementation and one extract implementation in [`mcp/tools.py`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/tools.py). Transport layers are thin delegates:
+[`mcp/tools.py`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/tools.py) owns caching and delegates to [`mcp/providers/chain.py`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/providers/chain.py), which walks the ordered lists in `config/providers.yaml` (top = primary, bottom = last fallback).
 
 | layer | module | role |
 |---|---|---|
-| Core | `mcp/tools.py` | `web_search_impl`, `web_extractor_impl`, TTL cache, upstream calls |
+| Config | `config/providers.yaml` | ordered `web_search` / `web_extract` chains + credentials |
+| Core | `mcp/tools.py` | `web_search_impl`, `web_extractor_impl`, TTL cache |
+| Providers | `mcp/providers/*.py` | Brave, Tavily, SearXNG, Crawl4AI adapters |
+| Chain | `mcp/providers/chain.py` | hard-failure fallback orchestration |
 | MCP exposer | `mcp/server.py` | FastMCP tool registration |
 | HTTP exposer | `mcp/api.py` | REST routes, validation, optional bearer auth |
 
@@ -25,20 +28,30 @@ Both exposers call the same impl functions in the same process, so they share on
 flowchart LR
     AgentMCP["MCP client"]
     AgentHTTP["HTTP agent"]
+    YAML["config/providers.yaml"]
     subgraph webMcp ["web-mcp :${MCP_PORT:-8000}"]
-        Server["server.py\nMCP exposer"]
-        API["api.py\nHTTP exposer"]
-        Tools["tools.py\ncore impls"]
+        Server["server.py"]
+        API["api.py"]
+        Tools["tools.py"]
+        Chain["providers/chain.py"]
+        Tavily["tavily"]
+        Firecrawl["firecrawl"]
+        Exa["exa"]
+        SearXNG["searxng"]
+        Crawl4AI["crawl4ai"]
     end
-    SearXNG["searxng"]
-    Crawl4AI["crawl4ai"]
 
     AgentMCP -->|"/mcp"| Server
     AgentHTTP -->|"/api/v1/*"| API
+    YAML --> Chain
     Server --> Tools
     API --> Tools
-    Tools --> SearXNG
-    Tools --> Crawl4AI
+    Tools --> Chain
+    Chain --> Tavily
+    Chain --> Firecrawl
+    Chain --> Exa
+    Chain --> SearXNG
+    Chain --> Crawl4AI
 ```
 
 ## Service topology

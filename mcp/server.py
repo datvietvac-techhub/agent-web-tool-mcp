@@ -26,8 +26,9 @@ async def web_search(
     categories: str = "general",
     language: str = "auto",
     time_range: str | None = None,
+    provider: str | None = None,
 ) -> dict:
-    """Search the web via a self-hosted SearXNG instance and return ranked results.
+    """Search the web using the configured provider fallback chain and return ranked results.
 
     Args:
         query: The search query.
@@ -35,12 +36,16 @@ async def web_search(
         categories: SearXNG category, e.g. "general", "news", "science", "it", "images".
         language: Language code such as "en" or "vi", or "auto" to let SearXNG decide.
         time_range: Optional recency filter: "day", "week", "month", or "year".
+        provider: Force a single search backend: "tavily", "firecrawl", "exa", or "searxng".
+            Omit to use the YAML fallback chain.
 
     Returns:
-        A dict with keys: query, results (list of {title, url, snippet, engine, score}),
+        A dict with keys: query, provider, results (list of {title, url, snippet, engine, score}),
         answers, suggestions, number_of_results. On failure, includes an "error" key.
     """
-    return await web_search_impl(query, num_results, categories, language, time_range)
+    return await web_search_impl(
+        query, num_results, categories, language, time_range, provider=provider
+    )
 
 
 @mcp.tool
@@ -49,8 +54,9 @@ async def web_extractor(
     mode: str = "fit",
     query: str | None = None,
     bypass_cache: bool = False,
+    provider: str | None = None,
 ) -> dict:
-    """Fetch one or more URLs via Crawl4AI and return clean markdown.
+    """Fetch one or more URLs via the configured extract fallback chain and return markdown.
 
     Args:
         urls: A single URL string, or a list of URL strings (max 20 per call).
@@ -58,12 +64,14 @@ async def web_extractor(
               or "bm25"/"llm" (relevance-filtered; requires `query`).
         query: Focus query, used when mode is "bm25" or "llm".
         bypass_cache: If true, skip this server's cache and ask Crawl4AI to re-fetch.
+        provider: Force a single extract backend: "tavily", "firecrawl", "exa", or "crawl4ai".
+            Omit to use the YAML fallback chain.
 
     Returns:
-        A dict with key "results": a list of {url, status, markdown, word_count, error?}
-        in the same order as the input URLs.
+        A dict with keys: provider (on success), results — a list of
+        {url, status, markdown, word_count, error?} in the same order as the input URLs.
     """
-    return await web_extractor_impl(urls, mode, query, bypass_cache)
+    return await web_extractor_impl(urls, mode, query, bypass_cache, provider=provider)
 
 
 if __name__ == "__main__":

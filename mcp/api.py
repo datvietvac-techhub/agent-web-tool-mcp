@@ -24,6 +24,7 @@ class SearchReq(BaseModel):
     categories: str = "general"
     language: str = "auto"
     time_range: str | None = None
+    provider: str | None = None
 
 
 class ExtractReq(BaseModel):
@@ -31,6 +32,7 @@ class ExtractReq(BaseModel):
     mode: str = "fit"
     query: str | None = None
     bypass_cache: bool = False
+    provider: str | None = None
 
 
 def _require_api_token(

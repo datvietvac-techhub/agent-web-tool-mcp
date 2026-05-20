@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "mcp"))
 import tools  # noqa: E402
 from providers import chain as provider_chain  # noqa: E402
 from providers import http as provider_http  # noqa: E402
-from test_tools import FakeClient, FakeResponse  # noqa: E402
+from test_tools import FakeResponse  # noqa: E402
 
 
 def run(coro):

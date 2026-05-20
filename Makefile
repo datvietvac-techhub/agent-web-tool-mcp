@@ -61,7 +61,7 @@ smoke: ## Hit all endpoints to confirm they respond
 	    -H 'content-type: application/json' \
 	    -d '{"query":"hello","num_results":1}' >/dev/null ; \
 	fi ; echo "  ok" ; \
-	echo "MCP      :" ; code="$$(curl -s -o /dev/null -w '%{http_code}' -m 10 http://localhost:$$MCP_PORT/mcp)" ; \
+	echo "MCP      :" ; code="$$(curl -sL -o /dev/null -w '%{http_code}' -m 10 http://localhost:$$MCP_PORT/mcp)" ; \
 	case "$$code" in 200|400|406) printf "  HTTP %s (ok)\n" "$$code" ;; *) printf "  HTTP %s (expected 200/400/406)\n" "$$code" >&2; exit 1 ;; esac
 
 secret: ## Generate a SEARXNG_SECRET value and print it (does not write .env)

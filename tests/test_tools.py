@@ -147,7 +147,7 @@ def test_web_search_errors_are_values(monkeypatch):
     out = run(tools.web_search_impl("hello"))
 
     assert out["results"] == []
-    assert "HTTP 403" in out["error"]
+    assert out["error"] == "provider request failed"
 
 
 def test_web_search_explicit_provider_no_fallback(monkeypatch):

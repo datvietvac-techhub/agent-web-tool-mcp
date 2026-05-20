@@ -77,7 +77,7 @@ def test_search_upstream_error_is_value(client, monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["results"] == []
-    assert "HTTP 503" in body["error"]
+    assert body["error"] == "provider request failed"
 
 
 def test_api_token_required(monkeypatch):

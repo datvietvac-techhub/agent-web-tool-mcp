@@ -61,8 +61,14 @@ async def _run_search_entry(entry: ProviderEntry, query: str, num_results: int, 
             return result
         result["provider"] = entry.provider
         return result
-    except ProviderError as e:
-        return {"query": query, "results": [], "error": str(e), "provider": entry.provider}
+    except ProviderError:
+        logger.exception("search provider %s raised ProviderError", entry.provider)
+        return {
+            "query": query,
+            "results": [],
+            "error": "provider request failed",
+            "provider": entry.provider,
+        }
 
 
 async def _run_extract_entry(
@@ -86,8 +92,9 @@ async def _run_extract_entry(
             return result
         result["provider"] = entry.provider
         return result
-    except ProviderError as e:
-        return {"results": [], "error": str(e), "provider": entry.provider}
+    except ProviderError:
+        logger.exception("extract provider %s raised ProviderError", entry.provider)
+        return {"results": [], "error": "provider request failed", "provider": entry.provider}
 
 
 async def run_search_provider(

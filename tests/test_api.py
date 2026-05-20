@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 
-import httpx
 import pytest
 from cachetools import TTLCache
 from fastapi.testclient import TestClient

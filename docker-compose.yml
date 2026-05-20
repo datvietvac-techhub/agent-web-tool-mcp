@@ -70,6 +70,7 @@ services:
       - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-30}
       - EXTRACT_TIMEOUT=${EXTRACT_TIMEOUT:-60}
       - MAX_CONCURRENCY=${MAX_CONCURRENCY:-5}
+      - API_TOKEN=${API_TOKEN:-}
     ports:
       - "${MCP_PORT:-8000}:${MCP_PORT:-8000}"
     networks:
@@ -80,6 +81,16 @@ services:
       crawl4ai:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import os,urllib.request; urllib.request.urlopen('http://localhost:' + os.environ.get('MCP_PORT','8000') + '/healthz')\"",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 networks:
   web-tool-net:

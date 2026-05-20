@@ -79,7 +79,6 @@ make up          # start              make down     # stop (keeps cache volume)
 make restart     # restart            make ps       # status
 make logs        # tail logs          make smoke    # re-run endpoint smoke tests
 make build       # rebuild web-mcp    make pull     # refresh upstream images
-make playground  # run the FastAPI dev API (alias: make play)
 make secret      # print a fresh SEARXNG_SECRET value
 make clean       # stop + remove the valkey cache volume
 ```
@@ -87,8 +86,11 @@ make clean       # stop + remove the valkey cache volume
 ## Smoke tests
 
 ```bash
-# SearXNG, Crawl4AI, and MCP
+# SearXNG, Crawl4AI, REST API, and MCP
 make smoke
+
+# REST API OpenAPI UI
+open http://localhost:${MCP_PORT:-8000}/docs
 
 # MCP server: inspect tools
 npx @modelcontextprotocol/inspector

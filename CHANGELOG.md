@@ -8,11 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Official REST API v1 on the same port as MCP: `POST /api/v1/search`, `POST /api/v1/extract`, `GET /healthz`, OpenAPI at `/docs`.
+- Optional bearer auth for REST via `API_TOKEN` env var.
+- `web-mcp` Docker healthcheck on `/healthz`.
 - Documentation site (MkDocs Material) published at <https://datvietvac-techhub.github.io/mcp-web-tools/>.
 - `llms.txt` and `llms-full.txt` at repo root for LLM ingestion ([llmstxt.org](https://llmstxt.org)).
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md` (this file), GitHub issue & PR templates.
 - JSON-LD `SoftwareApplication` schema on the docs landing page, including `alternateName` entries for the previous project names.
 - "Why self-host MCP Web Tools?" section in README leading with the cost/privacy/control angle vs paid SaaS search APIs.
+
+### Removed
+
+- Dev-only FastAPI playground (`make playground`, `mcp/playground.py`, `PLAYGROUND_PORT`). Use `/api/v1/*` and `/docs` on the main server instead.
 
 ### Changed
 

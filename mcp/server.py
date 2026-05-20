@@ -1,17 +1,15 @@
-"""MCP server exposing two web tools backed by SearXNG and Crawl4AI.
+"""MCP exposer for web_search and web_extractor.
 
-Tools:
-  - web_search(query, ...)     -> ranked search results from a self-hosted SearXNG
-  - web_extractor(urls, ...)   -> clean markdown for one or more URLs via Crawl4AI
-
-Tool logic lives in `tools.py` so the FastAPI dev playground can call the same
-implementations without duplicating code.
+Thin FastMCP layer: registers tools and delegates to `tools.py`. HTTP mode
+mounts this ASGI app alongside the REST routes in `api.py`.
 """
 
 import os
 
+import uvicorn
 from fastmcp import FastMCP
 
+from api import create_app
 from tools import web_extractor_impl, web_search_impl
 
 MCP_TRANSPORT = os.environ.get("MCP_TRANSPORT", "http").lower()
@@ -72,4 +70,6 @@ if __name__ == "__main__":
     if MCP_TRANSPORT == "stdio":
         mcp.run()
     else:
-        mcp.run(transport="http", host=MCP_HOST, port=MCP_PORT)
+        mcp_app = mcp.http_app(path="/")
+        app = create_app(mcp_app)
+        uvicorn.run(app, host=MCP_HOST, port=MCP_PORT)

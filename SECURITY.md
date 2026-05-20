@@ -27,7 +27,7 @@ We will acknowledge valid reports as soon as possible, investigate privately, an
 
 ## Deployment Notes
 
-By default, only the MCP server is published to the host; SearXNG, Crawl4AI, and Valkey stay on the Docker network. If you expose the MCP endpoint outside a trusted local environment, put it behind your own access control such as a VPN, firewall rule, or authenticated reverse proxy.
+By default, only `web-mcp` is published to the host (MCP at `/mcp`, REST at `/api/v1/*`); SearXNG, Crawl4AI, and Valkey stay on the Docker network. If you expose the server outside a trusted local environment, set `API_TOKEN` for REST endpoints and/or put the service behind a VPN, firewall rule, or authenticated reverse proxy.
 
 `web_extractor` performs lightweight URL validation before forwarding requests to Crawl4AI. Crawl4AI domain/link filters are useful for crawl behavior, but they are not treated as this project's SSRF protection boundary.
 
@@ -35,7 +35,7 @@ By default, only the MCP server is published to the host; SearXNG, Crawl4AI, and
 
 In scope:
 
-- vulnerabilities in the `web-mcp` FastMCP server,
+- vulnerabilities in the `web-mcp` server (MCP and REST exposers),
 - unsafe request handling in `web_search` or `web_extractor`,
 - secret leakage in install, compose, logging, or docs,
 - container configuration issues that expose internal services unexpectedly.

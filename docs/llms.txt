@@ -9,7 +9,7 @@ MCP Web Tools is a self-hosted MCP server that lets developers serve `web_search
 - [README](https://github.com/datvietvac-techhub/mcp-web-tools#readme): project overview, TL;DR, why self-host, install, tool definitions, comparison table.
 - [Documentation site](https://datvietvac-techhub.github.io/mcp-web-tools/): canonical docs landing page.
 - [Install guide](https://datvietvac-techhub.github.io/mcp-web-tools/install/): one-liner installer, manual clone, Make targets, smoke tests, MCP client config.
-- [Configuration reference](https://datvietvac-techhub.github.io/mcp-web-tools/config/): `.env` variables, `web_search` params, `web_extractor` params, dev playground.
+- [Configuration reference](https://datvietvac-techhub.github.io/mcp-web-tools/config/): `.env` variables, `web_search` params, `web_extractor` params, HTTP REST API.
 - [Architecture](https://datvietvac-techhub.github.io/mcp-web-tools/architecture/): Docker Compose topology, FastMCP/SearXNG/Crawl4AI/Valkey responsibilities, request flow.
 - [Changelog](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/CHANGELOG.md): release notes in Keep a Changelog format.
 

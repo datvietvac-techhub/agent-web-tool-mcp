@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY server.py tools.py url_policy.py playground.py ./
+COPY server.py api.py tools.py url_policy.py ./
 
 EXPOSE 8000
 

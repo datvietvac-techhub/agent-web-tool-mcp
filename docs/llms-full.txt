@@ -137,8 +137,8 @@ Order matches input URL list. Per-URL failures return `status: "error"` and do n
 - `SEARXNG_SECRET`: required HMAC signing key for SearXNG, not an API key.
 - `CRAWL4AI_API_TOKEN`: optional bearer token for Crawl4AI.
 - `MCP_TRANSPORT`: http or stdio, default http.
-- `MCP_PORT`: host port for MCP server, default 8000.
-- `PLAYGROUND_PORT`: host port for FastAPI dev playground, default 8001.
+- `MCP_PORT`: host port for MCP + REST API, default 8000.
+- `API_TOKEN`: optional bearer token for REST API `/api/v1/*`.
 - `MCP_CACHE_TTL`: web_search cache TTL seconds, default 300.
 - `EXTRACT_CACHE_TTL`: web_extractor cache TTL seconds, default 1800.
 - `REQUEST_TIMEOUT`: SearXNG request timeout seconds, default 30.

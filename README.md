@@ -42,7 +42,7 @@ The MCP server is a thin [FastMCP](https://github.com/jlowin/fastmcp) wrapper th
 - Transport flexible — Streamable HTTP (`MCP_TRANSPORT=http`) for remote/multi-agent, or stdio (`MCP_TRANSPORT=stdio`) for a single local client.
 - Layered caching — Valkey backs SearXNG's limiter/cache; the MCP layer adds an in-process TTL cache on top.
 - Parallel extraction — `web_extractor` fans out up to `MAX_CONCURRENCY` URLs per call, preserves input order, returns per-URL status.
-- FastAPI dev playground — `make playground` boots a one-shot FastAPI app off the same image (`POST /search`, `POST /extract`, Swagger at `/docs`).
+- Official REST API — `POST /api/v1/search` and `POST /api/v1/extract` on the same port as MCP for agents that prefer plain HTTP; OpenAPI at `/docs`.
 - Pinnable images — `VALKEY_IMAGE`, `SEARXNG_IMAGE`, `CRAWL4AI_IMAGE` in `.env` for reproducible deploys.
 
 ## How to install the MCP server for Claude Code
@@ -149,6 +149,31 @@ Response shape (order matches input URLs):
 
 Per-URL failures surface as `{"status": "error", "error": "...", "markdown": ""}` without aborting the whole call. Full mode reference, tuning, and caching keys: [docs/config.md#web_extractor](docs/config.md#web_extractor).
 
+## HTTP API (for agents without MCP)
+
+The same `web_search` and `web_extractor` implementations are also exposed as a REST API on `${MCP_PORT}` (default `8000`), beside the MCP endpoint:
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/healthz` | Liveness probe |
+| `POST` | `/api/v1/search` | Same params/response as `web_search` |
+| `POST` | `/api/v1/extract` | Same params/response as `web_extractor` |
+| `GET` | `/docs` | Swagger UI (OpenAPI) |
+
+```bash
+# Search
+curl -sX POST http://localhost:8000/api/v1/search \
+  -H 'content-type: application/json' \
+  -d '{"query":"fastmcp","num_results":5}'
+
+# Extract
+curl -sX POST http://localhost:8000/api/v1/extract \
+  -H 'content-type: application/json' \
+  -d '{"urls":["https://example.com"],"mode":"fit"}'
+```
+
+Set `API_TOKEN` in `.env` to require `Authorization: Bearer <token>` on `/api/v1/*`. Full reference: [docs/config.md#http-api](docs/config.md#http-api).
+
 ## MCP Web Tools vs Brave Search MCP vs Tavily MCP
 
 A side-by-side of self-hosted MCP Web Tools against the two most common hosted alternatives most teams reach for first:
@@ -171,7 +196,7 @@ Pick MCP Web Tools if you want zero per-query cost, no vendor lock-in, full cont
 Full docs are published on GitHub Pages: **https://datvietvac-techhub.github.io/mcp-web-tools/**
 
 - [Install guide](docs/install.md) — one-liner, manual clone, `make` targets, smoke tests, agent connect snippets.
-- [Configuration reference](docs/config.md) — every `.env` variable + full `web_search` / `web_extractor` parameter tables + dev playground.
+- [Configuration reference](docs/config.md) — every `.env` variable + full `web_search` / `web_extractor` parameter tables + HTTP API.
 - [Architecture](docs/architecture.md) — service topology, request flow, Mermaid diagrams, gotchas.
 - [Changelog](CHANGELOG.md) — release notes (Keep a Changelog format).
 

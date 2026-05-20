@@ -31,7 +31,7 @@ The whole stack is a 4-service Docker Compose deployment: [FastMCP](https://gith
 ## Quick links
 
 - **[Install guide](install.md)** — one-liner installer, manual clone, `make` targets, smoke tests, agent connect snippets.
-- **[Configuration reference](config.md)** — every `.env` variable + full `web_search` / `web_extractor` parameter tables + dev playground.
+- **[Configuration reference](config.md)** — every `.env` variable + full `web_search` / `web_extractor` parameter tables + HTTP REST API.
 - **[Architecture](architecture.md)** — service topology, request flow, Mermaid diagrams, gotchas.
 - **[Changelog](changelog.md)** — release notes.
 - **[Source on GitHub](https://github.com/datvietvac-techhub/mcp-web-tools)** — Apache-2.0.

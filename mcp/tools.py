@@ -1,7 +1,7 @@
-"""Shared tool implementations backing both the MCP server and the dev playground.
+"""Core implementations for web_search and web_extractor.
 
-Both `server.py` (FastMCP) and `playground.py` (FastAPI) import the impls from
-this module so there is exactly one place where SearXNG / Crawl4AI logic lives.
+Single source of truth for SearXNG / Crawl4AI logic, caching, and URL policy.
+Transport layers (`server.py` for MCP, `api.py` for HTTP) delegate here.
 """
 
 import asyncio

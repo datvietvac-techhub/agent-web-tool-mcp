@@ -10,14 +10,14 @@ For the project overview and architecture, see [README.md](README.md) and the [d
 .
 ├── docker-compose.yml      # 4-service stack
 ├── install.sh              # bootstrap (curl-pipe + in-repo modes)
-├── Makefile                # make up/down/logs/playground/smoke/...
+├── Makefile                # make up/down/logs/smoke/...
 ├── .env.example            # all tunables, copied to .env by install.sh
 ├── mcp/                    # the only service we build
 │   ├── Dockerfile
-│   ├── server.py           # FastMCP entrypoint, registers tools
-│   ├── tools.py            # web_search_impl + web_extractor_impl (shared)
+│   ├── server.py           # MCP exposer (FastMCP tool registration)
+│   ├── api.py              # HTTP exposer (REST routes)
+│   ├── tools.py            # web_search_impl + web_extractor_impl (core)
 │   ├── url_policy.py       # URL validation boundary for extraction
-│   ├── playground.py       # FastAPI dev app (re-uses tools.py)
 │   └── requirements.txt
 ├── searxng/
 │   └── settings.yml        # engines, categories, formats, limiter
@@ -31,7 +31,7 @@ git clone https://github.com/datvietvac-techhub/mcp-web-tools.git
 cd mcp-web-tools
 ./install.sh                         # one-time bootstrap
 make up                              # start the stack
-make playground                      # iterate against POST /search, POST /extract
+curl http://localhost:8000/docs      # OpenAPI UI for REST endpoints
 
 # after editing mcp/*.py:
 make build && make restart           # rebuild the web-mcp image and restart
@@ -40,11 +40,11 @@ python -m compileall mcp
 pytest
 ```
 
-For pure tool-impl changes you can also run `mcp/playground.py` directly against the running stack — it imports the same `web_search_impl` / `web_extractor_impl`, so behavior matches the MCP server exactly.
+Unit tests in `tests/test_tools.py` target the core layer directly. `tests/test_api.py` covers the HTTP exposer.
 
 ## Coding conventions
 
-- **Python**: target the version pinned in [`mcp/Dockerfile`](mcp/Dockerfile). Keep tool impls (`mcp/tools.py`) free of MCP- or FastAPI-specific imports so both `server.py` and `playground.py` can share them.
+- **Python**: target the version pinned in [`mcp/Dockerfile`](mcp/Dockerfile). Keep tool impls (`mcp/tools.py`) free of MCP- or FastAPI-specific imports so `server.py` and `api.py` can share them.
 - **Tool contracts are stable** — return shapes for `web_search` / `web_extractor` are part of the public surface; bump [`docs/config.md`](docs/config.md) when you change them.
 - **Failures are values, not exceptions** — both tools return a dict with an `error` field on failure (and `results: []` / `status: "error"` per URL). Don't raise from tool entrypoints.
 - **Caching keys** must include every input that affects the response (query, categories, language, time_range, mode, query for bm25/llm, etc.).
@@ -55,7 +55,7 @@ For pure tool-impl changes you can also run `mcp/playground.py` directly against
 ## Submitting changes
 
 1. Fork and create a feature branch off `main`.
-2. Run `python -m compileall mcp`, `pytest`, and `make build && make restart && make smoke` before pushing — all three endpoints must return `ok` / `2xx`.
+2. Run `python -m compileall mcp`, `pytest`, and `make build && make restart && make smoke` before pushing — all endpoints must return `ok` / `2xx`.
 3. If your change touches a tool's request/response shape, update [`docs/config.md`](docs/config.md) and any clients you know of.
 4. Open a PR with:
    - what changed and why (one paragraph is fine),

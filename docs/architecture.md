@@ -1,26 +1,60 @@
 ---
 title: Architecture — MCP Web Tools
-description: How MCP Web Tools is structured — four Docker services (FastMCP, SearXNG, Crawl4AI, Valkey) on a single bridge network, request flow diagrams, and operational gotchas.
+description: How MCP Web Tools is structured — four Docker services on a single bridge network, core vs exposer layering, request flow diagrams, and operational gotchas.
 ---
 
 # Architecture
 
 > Internal Docker service, container, network, and volume names (`web-mcp`, `web-tool-net`, `web-tool-{valkey,searxng,crawl4ai}`, `valkey-data`) retain the project's previous slug (`agent-web-tool-mcp` / `mcp-web-tool`) for deployment compatibility. They will be unified to the `mcp-web-tools-*` prefix in a future major release.
 
-Four services run on a single bridge network (`web-tool-net`). Agents only ever talk to `web-mcp`; SearXNG, Crawl4AI, and Valkey are internal services and are not published to the host by default.
+Four services run on a single bridge network (`web-tool-net`). Agents talk to `web-mcp` over MCP or HTTP; SearXNG, Crawl4AI, and Valkey are internal.
+
+## Core vs exposers
+
+There is one search implementation and one extract implementation in [`mcp/tools.py`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/tools.py). Transport layers are thin delegates:
+
+| layer | module | role |
+|---|---|---|
+| Core | `mcp/tools.py` | `web_search_impl`, `web_extractor_impl`, TTL cache, upstream calls |
+| MCP exposer | `mcp/server.py` | FastMCP tool registration |
+| HTTP exposer | `mcp/api.py` | REST routes, validation, optional bearer auth |
+
+Both exposers call the same impl functions in the same process, so they share one in-process cache.
 
 ```mermaid
 flowchart LR
-    Agent["AI Agent<br/>(MCP client)"]
+    AgentMCP["MCP client"]
+    AgentHTTP["HTTP agent"]
+    subgraph webMcp ["web-mcp :${MCP_PORT:-8000}"]
+        Server["server.py\nMCP exposer"]
+        API["api.py\nHTTP exposer"]
+        Tools["tools.py\ncore impls"]
+    end
+    SearXNG["searxng"]
+    Crawl4AI["crawl4ai"]
+
+    AgentMCP -->|"/mcp"| Server
+    AgentHTTP -->|"/api/v1/*"| API
+    Server --> Tools
+    API --> Tools
+    Tools --> SearXNG
+    Tools --> Crawl4AI
+```
+
+## Service topology
+
+```mermaid
+flowchart LR
+    Agent["AI Agent"]
     subgraph stack [docker compose: web-tool-net]
-        WebMCP["web-mcp<br/>FastMCP server<br/>:${MCP_PORT:-8000}"]
+        WebMCP["web-mcp<br/>MCP + REST<br/>:${MCP_PORT:-8000}"]
         SearXNG["searxng<br/>:8080"]
         Crawl4AI["crawl4ai<br/>:11235<br/>shm_size 1g"]
         Valkey["valkey<br/>cache / limiter<br/>(volume: valkey-data)"]
     end
     Internet[(Internet)]
 
-    Agent -->|"HTTP /mcp or stdio"| WebMCP
+    Agent -->|"HTTP /mcp or /api/v1/*"| WebMCP
     WebMCP -->|"web_search → /search?format=json"| SearXNG
     WebMCP -->|"web_extractor → POST /md"| Crawl4AI
     SearXNG --> Valkey
@@ -35,44 +69,42 @@ flowchart LR
 | `valkey` | `valkey/valkey:8-alpine` | — (internal) | cache + rate-limiter backend for SearXNG; data persisted to the `valkey-data` volume |
 | `searxng` | `searxng/searxng:latest` | `8080` internal | metasearch frontend; JSON API enabled; settings in `searxng/settings.yml` |
 | `crawl4ai` | `unclecode/crawl4ai:latest` | `11235` internal | headless-browser crawler; exposes `/md` and `/crawl`; `shm_size: 1g` avoids Chromium crashes |
-| `web-mcp` | built from [`mcp/Dockerfile`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/Dockerfile) | `${MCP_PORT:-8000}` host | FastMCP server; tool impls in [`mcp/tools.py`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/tools.py); shared with the FastAPI playground |
-
-On demand (not in compose), `make playground` runs the same `web-mcp` image with [`mcp/playground.py`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/playground.py) as entrypoint, joining `web-tool-net` via `compose run` so it reaches `searxng` and `crawl4ai` by service name.
+| `web-mcp` | built from [`mcp/Dockerfile`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/Dockerfile) | `${MCP_PORT:-8000}` host | unified ASGI app: MCP at `/mcp`, REST at `/api/v1/*`, health at `/healthz` |
 
 ## Request flow
 
 ```mermaid
 sequenceDiagram
     participant A as Agent
-    participant M as web-mcp (FastMCP)
+    participant E as exposer (MCP or HTTP)
     participant Cache as in-process TTL cache
     participant S as searxng
     participant C as crawl4ai
 
-    A->>M: web_search(query, ...)
-    M->>Cache: lookup (MCP_CACHE_TTL)
+    A->>E: web_search(query, ...)
+    E->>Cache: lookup (MCP_CACHE_TTL)
     alt cache hit
-        Cache-->>M: cached result
+        Cache-->>E: cached result
     else miss
-        M->>S: GET /search?format=json
-        S-->>M: results
-        M->>Cache: store
+        E->>S: GET /search?format=json
+        S-->>E: results
+        E->>Cache: store
     end
-    M-->>A: normalized JSON
+    E-->>A: normalized JSON
 
-    A->>M: web_extractor(urls, ...)
-    M->>Cache: per-URL lookup (EXTRACT_CACHE_TTL)
-    M->>C: POST /md (parallel, ≤ MAX_CONCURRENCY)
-    C-->>M: markdown per URL
-    M->>Cache: store per-URL
-    M-->>A: ordered results[]
+    A->>E: web_extractor(urls, ...)
+    E->>Cache: per-URL lookup (EXTRACT_CACHE_TTL)
+    E->>C: POST /md (parallel, ≤ MAX_CONCURRENCY)
+    C-->>E: markdown per URL
+    E->>Cache: store per-URL
+    E-->>A: ordered results[]
 ```
 
 ## Caching layers
 
 There are **two** TTL caches in the path:
 
-1. **MCP layer** (`mcp/tools.py`): in-process `cachetools.TTLCache`, keyed by the full tuple of input params. Sized 512 for `web_search`, 1024 for `web_extractor`. Disabled when `MCP_CACHE_TTL=0` / `EXTRACT_CACHE_TTL=0`.
+1. **Core layer** (`mcp/tools.py`): in-process `cachetools.TTLCache`, keyed by the full tuple of input params. Sized 512 for `web_search`, 1024 for `web_extractor`. Disabled when `MCP_CACHE_TTL=0` / `EXTRACT_CACHE_TTL=0`. Shared by MCP and HTTP callers in the same process.
 2. **SearXNG / Crawl4AI**: each upstream maintains its own caches independently. SearXNG uses Valkey for limiter + result cache; Crawl4AI has internal page caches that `web_extractor`'s `bypass_cache=true` flag bypasses.
 
 Cache keys must include every input that affects the response (query, categories, language, time_range, mode, focus query for bm25/llm). When adding a new param to a tool, update the cache key in [`mcp/tools.py`](https://github.com/datvietvac-techhub/mcp-web-tools/blob/main/mcp/tools.py) accordingly.

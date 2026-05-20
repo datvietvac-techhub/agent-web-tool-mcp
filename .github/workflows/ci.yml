@@ -59,25 +59,23 @@ jobs:
         run: |
           set -e
           deadline=$((SECONDS + 240))
-          want="web-tool-valkey web-tool-searxng web-tool-crawl4ai"
+          want="web-tool-valkey web-tool-searxng web-tool-crawl4ai web-tool-mcp"
           while :; do
             unhealthy=""
             for c in $want; do
               s=$(docker inspect -f '{{.State.Health.Status}}' "$c" 2>/dev/null || echo "missing")
               if [ "$s" != "healthy" ]; then unhealthy="$unhealthy $c=$s"; fi
             done
-            # web-mcp has no healthcheck — just confirm it's running
-            mcp_state=$(docker inspect -f '{{.State.Status}}' web-tool-mcp 2>/dev/null || echo "missing")
-            if [ -z "$unhealthy" ] && [ "$mcp_state" = "running" ]; then
+            if [ -z "$unhealthy" ]; then
               echo "all services healthy"
               break
             fi
             if [ $SECONDS -ge $deadline ]; then
-              echo "timed out waiting for services:$unhealthy mcp=$mcp_state" >&2
+              echo "timed out waiting for services:$unhealthy" >&2
               docker compose ps
               exit 1
             fi
-            echo "waiting…$unhealthy mcp=$mcp_state"
+            echo "waiting…$unhealthy"
             sleep 5
           done
 
@@ -101,6 +99,14 @@ jobs:
 
           asyncio.run(main())
           PY
+
+      - name: REST API end-to-end test
+        run: |
+          curl -sf http://localhost:8000/healthz
+          curl -sfX POST http://localhost:8000/api/v1/extract \
+            -H 'content-type: application/json' \
+            -d '{"urls":"https://example.com","mode":"fit"}' \
+            | python -c "import json,sys; d=json.load(sys.stdin); r=d['results'][0]; assert r.get('status')=='ok', r; print('REST e2e OK — words:', r.get('word_count'))"
 
       - name: Dump compose logs on failure
         if: failure()

@@ -61,7 +61,8 @@ def dedupe_search_results(items: list[dict], num_results: int) -> list[dict]:
 class SearchProvider(Protocol):
     name: str
 
-    def is_configured(self) -> bool: ...
+    def is_configured(self) -> bool:
+        pass
 
     async def search(
         self,

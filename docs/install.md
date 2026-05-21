@@ -61,6 +61,39 @@ make smoke          # verify endpoints
 
 `make install` is the all-in-one equivalent: bootstrap + `compose up -d --build` + smoke. First `make up` pulls the Crawl4AI image (~GB, includes Chromium) — budget a couple of minutes.
 
+## Upgrading {#upgrading}
+
+When a new release is available, upgrade from your install directory:
+
+```bash
+cd ~/.local/share/mcp-web-tool   # or your --dir path
+make update
+```
+
+Or use the one-liner (same default clone dir as install; requires `update.sh` on the GitHub Release):
+
+```bash
+curl -fsSL https://github.com/datvietvac-techhub/mcp-web-tools/releases/latest/download/update.sh | bash
+```
+
+Pin to a specific branch or tag (e.g. after installing from `v1.0.0`):
+
+```bash
+REPO_BRANCH=v1.0.0 make update
+```
+
+`make update` will:
+
+- sync the repo to `origin/$REPO_BRANCH` (destructive `git reset --hard`; skips if there is no `.git`)
+- run `./install.sh` (prereqs, `.env` bootstrap — existing `.env` is preserved)
+- pull upstream images (valkey, searxng, crawl4ai)
+- rebuild and restart the stack (`docker compose up -d --build`)
+- run `make smoke`
+
+Forward installer flags with `ARGS`, e.g. `make update ARGS="--skip-checks"`.
+
+**When not to use:** if you have local uncommitted changes, use `git pull` and `make build && make restart` instead of `make update`.
+
 ## Fully manual (no install script)
 
 ```bash
@@ -75,6 +108,7 @@ docker compose ps        # wait until searxng + crawl4ai are "healthy"
 ```
 make bootstrap   # ./install.sh only (prereqs, .env, secret) — no compose up
 make install     # one-shot: bootstrap + up + smoke (forward flags with ARGS="--pull")
+make update      # upgrade: sync repo, bootstrap, pull, rebuild, smoke
 make up          # start              make down     # stop (keeps cache volume)
 make restart     # restart            make ps       # status
 make logs        # tail logs          make smoke    # re-run endpoint smoke tests

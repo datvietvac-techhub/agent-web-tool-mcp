@@ -2,15 +2,17 @@
 #   make bootstrap  one-time setup on a fresh machine (prereqs, .env, secret)
 #   make up         start the stack
 #   make install    convenience one-shot: bootstrap + up + smoke
+#   make update     upgrade: sync repo, bootstrap, pull, rebuild, smoke
 #
 # `make bootstrap ARGS="--pull"` forwards flags to install.sh.
 
-COMPOSE := docker compose
-ARGS    ?=
+COMPOSE     := docker compose
+ARGS        ?=
+REPO_BRANCH ?= main
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap install up down restart ps logs build pull smoke secret clean config
+.PHONY: help bootstrap install update up down restart ps logs build pull smoke secret clean config
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -21,6 +23,16 @@ bootstrap: ## Bootstrap only — prereqs, .env, secret (no compose up)
 
 install: ## One-shot: bootstrap + up + smoke (convenience wrapper)
 	@./install.sh $(ARGS) && $(COMPOSE) up -d --build && $(MAKE) smoke
+
+update: ## Upgrade: sync repo, bootstrap, pull images, rebuild, restart, smoke
+	@if [ -d .git ]; then \
+	  git fetch --depth 1 origin $(REPO_BRANCH) && \
+	  git reset --hard origin/$(REPO_BRANCH); \
+	fi
+	@./install.sh $(ARGS)
+	@$(COMPOSE) pull valkey searxng crawl4ai
+	@$(COMPOSE) up -d --build
+	@$(MAKE) smoke
 
 up: ## Start the stack in the background
 	$(COMPOSE) up -d

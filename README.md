@@ -99,6 +99,8 @@ For a single local client launching the server as a subprocess, set `MCP_TRANSPO
 
 See [docs/install.md](docs/install.md) for manual install, `make` targets, smoke tests, and stdio configuration.
 
+**Upgrading:** from your install directory, run `make update` (syncs code, rebuilds the stack, runs smoke tests). See [docs/install.md#upgrading](docs/install.md#upgrading).
+
 ## How does the web_search tool work (SearXNG)?
 
 `web_search` is an MCP tool that queries a self-hosted SearXNG metasearch instance (aggregating ~70 search engines including Google, Bing, DuckDuckGo, Brave, Wikipedia) and returns ranked, de-duplicated results to the agent. Results are normalized to a stable JSON shape, cached in-process for `MCP_CACHE_TTL` seconds (default `300`), and clamped to `1..50` per call.

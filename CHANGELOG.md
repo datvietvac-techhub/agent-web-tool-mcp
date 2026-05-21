@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Official REST API v1 on the same port as MCP: `POST /api/v1/search`, `POST /api/v1/extract`, `GET /healthz`, OpenAPI at `/docs`.
 - Optional bearer auth for REST via `API_TOKEN` env var.
 - `web-mcp` Docker healthcheck on `/healthz`.
+- `make update` — one-command upgrade: sync git, bootstrap, pull upstream images, rebuild `web-mcp`, restart, and smoke.
+- `update.sh` — curl-pipe wrapper for the same flow (attach to GitHub Releases alongside `install.sh`).
+- [Upgrading](docs/install.md#upgrading) section in install docs and README pointer.
 - Documentation site (MkDocs Material) published at <https://datvietvac-techhub.github.io/mcp-web-tools/>.
 - `llms.txt` and `llms-full.txt` at repo root for LLM ingestion ([llmstxt.org](https://llmstxt.org)).
 - `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md` (this file), GitHub issue & PR templates.

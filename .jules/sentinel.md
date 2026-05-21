@@ -11,3 +11,8 @@
 **Vulnerability:** The SSRF protection logic in `url_policy.py` validated hostnames directly from `urllib.parse.urlsplit` without stripping trailing dots. Hostnames ending with a dot (e.g. `localhost.` or `127.0.0.1.`) would bypass strict string matching (`== "localhost"`) and cause `socket.getaddrinfo()` to fail (which was caught and allowed as "fail-open"). The underlying HTTP client could still resolve and connect to the internal IP.
 **Learning:** Fully Qualified Domain Names (FQDNs) with a trailing root dot bypass naive blocklists. Trailing dots can also break naive DNS validation wrappers depending on the OS resolver implementation while still being parsed successfully by the target HTTP client.
 **Prevention:** Always normalize the hostname by calling `.rstrip('.')` on the parsed hostname string before performing validation checks or DNS resolution in SSRF protections.
+
+## 2024-05-24 - [IDNA SSRF Bypass]
+**Vulnerability:** The SSRF protection in `mcp/url_policy.py` could be bypassed using IDNA-encoded hostnames (like `①②⑦.⓪.⓪.①`). The Python `socket.getaddrinfo` on some systems would fail to resolve the un-encoded Unicode string, bypassing the check, but `httpx` would IDNA-encode the hostname under the hood, normalize it to `127.0.0.1`, and connect to the internal address.
+**Learning:** Security validation logic must process hostnames the exact same way the underlying HTTP client will process them.
+**Prevention:** Always IDNA-encode hostnames using `.encode("idna").decode("ascii")` prior to checking them against denylists or attempting IP resolution.

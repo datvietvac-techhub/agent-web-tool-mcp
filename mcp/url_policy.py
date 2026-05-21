@@ -29,6 +29,11 @@ def validate_fetch_url(url: str) -> str | None:
 
     hostname = parts.hostname.lower().rstrip(".")
 
+    try:
+        hostname = hostname.encode("idna").decode("ascii")
+    except Exception:
+        pass
+
     if (
         hostname == "localhost"
         or hostname.endswith(".local")

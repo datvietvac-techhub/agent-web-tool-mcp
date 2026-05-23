@@ -40,7 +40,9 @@ def test_healthz(client):
 
 def test_search_happy_path(client, monkeypatch):
     fake = FakeClient(
-        get_responses=[FakeResponse({"results": [{"title": "A", "url": "https://a.test"}]})]
+        get_responses=[
+            FakeResponse({"results": [{"title": "A", "url": "https://a.test"}]})
+        ]
     )
     monkeypatch.setattr(provider_http, "_client", fake)
 
@@ -52,7 +54,9 @@ def test_search_happy_path(client, monkeypatch):
 
 def test_extract_happy_path(client, monkeypatch):
     fake = FakeClient(
-        post_responses=[FakeResponse({"url": "https://example.com", "markdown": "hello world"})]
+        post_responses=[
+            FakeResponse({"url": "https://example.com", "markdown": "hello world"})
+        ]
     )
     monkeypatch.setattr(provider_http, "_client", fake)
 
@@ -117,7 +121,9 @@ def test_mcp_and_http_parity(monkeypatch):
         get_responses=[
             FakeResponse(
                 {
-                    "results": [{"title": "A", "url": "https://a.test", "content": "snippet"}],
+                    "results": [
+                        {"title": "A", "url": "https://a.test", "content": "snippet"}
+                    ],
                     "suggestions": [],
                     "answers": [],
                     "number_of_results": 1,

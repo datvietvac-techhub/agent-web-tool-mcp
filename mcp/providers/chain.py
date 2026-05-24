@@ -39,14 +39,23 @@ def reload_config() -> None:
 
 
 def _invalid_provider_error(provider_id: str, chain_kind: str) -> dict:
-    allowed = sorted(SEARCH_PROVIDER_IDS if chain_kind == "search" else EXTRACT_PROVIDER_IDS)
+    allowed = sorted(
+        SEARCH_PROVIDER_IDS if chain_kind == "search" else EXTRACT_PROVIDER_IDS
+    )
     label = "search" if chain_kind == "search" else "extract"
     return {
         "error": f"unknown {label} provider {provider_id!r}; valid: {', '.join(allowed)}",
     }
 
 
-async def _run_search_entry(entry: ProviderEntry, query: str, num_results: int, categories: str, language: str, time_range: str | None) -> dict:
+async def _run_search_entry(
+    entry: ProviderEntry,
+    query: str,
+    num_results: int,
+    categories: str,
+    language: str,
+    time_range: str | None,
+) -> dict:
     if entry_is_skipped(entry, "search"):
         return {
             "query": query,
@@ -55,7 +64,9 @@ async def _run_search_entry(entry: ProviderEntry, query: str, num_results: int, 
         }
     provider = build_search_provider(entry)
     try:
-        result = await provider.search(query, num_results, categories, language, time_range)
+        result = await provider.search(
+            query, num_results, categories, language, time_range
+        )
         if "error" in result:
             result["provider"] = entry.provider
             return result
@@ -72,7 +83,11 @@ async def _run_search_entry(entry: ProviderEntry, query: str, num_results: int, 
 
 
 async def _run_extract_entry(
-    entry: ProviderEntry, urls: list[str], mode: str, query: str | None, bypass_cache: bool
+    entry: ProviderEntry,
+    urls: list[str],
+    mode: str,
+    query: str | None,
+    bypass_cache: bool,
 ) -> dict:
     if entry_is_skipped(entry, "extract"):
         return {
@@ -94,7 +109,11 @@ async def _run_extract_entry(
         return result
     except ProviderError:
         logger.exception("extract provider %s raised ProviderError", entry.provider)
-        return {"results": [], "error": "provider request failed", "provider": entry.provider}
+        return {
+            "results": [],
+            "error": "provider request failed",
+            "provider": entry.provider,
+        }
 
 
 async def run_search_provider(
@@ -109,7 +128,9 @@ async def run_search_provider(
     if entry is None:
         err = _invalid_provider_error(provider_id, "search")
         return {"query": query, "results": [], **err}
-    return await _run_search_entry(entry, query, num_results, categories, language, time_range)
+    return await _run_search_entry(
+        entry, query, num_results, categories, language, time_range
+    )
 
 
 async def run_extract_provider(
@@ -141,7 +162,9 @@ async def run_search_chain(
         if entry_is_skipped(entry, "search"):
             attempts.append({"provider": entry.provider, "skipped": "not configured"})
             continue
-        result = await _run_search_entry(entry, query, num_results, categories, language, time_range)
+        result = await _run_search_entry(
+            entry, query, num_results, categories, language, time_range
+        )
         if "error" in result and not result.get("results"):
             last_error = result["error"]
             attempts.append({"provider": entry.provider, "error": last_error})
@@ -175,7 +198,9 @@ async def run_extract_chain(
             continue
         provider = build_extract_provider(entry)
         if not provider.supports_mode(mode):
-            attempts.append({"provider": entry.provider, "skipped": f"unsupported mode {mode}"})
+            attempts.append(
+                {"provider": entry.provider, "skipped": f"unsupported mode {mode}"}
+            )
             continue
         result = await _run_extract_entry(entry, urls, mode, query, bypass_cache)
         if "error" in result and not result.get("results"):

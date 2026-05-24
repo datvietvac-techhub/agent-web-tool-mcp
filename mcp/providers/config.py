@@ -19,6 +19,7 @@ DEFAULT_CONFIG_PATH = Path("config/providers.yaml")
 def config_path() -> Path:
     return Path(os.environ.get("PROVIDERS_CONFIG", str(DEFAULT_CONFIG_PATH)))
 
+
 SEARCH_PROVIDER_IDS = frozenset({"tavily", "firecrawl", "exa", "searxng"})
 EXTRACT_PROVIDER_IDS = frozenset({"tavily", "firecrawl", "exa", "crawl4ai"})
 

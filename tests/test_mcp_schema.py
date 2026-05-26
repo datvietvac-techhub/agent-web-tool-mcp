@@ -56,7 +56,9 @@ def test_mcp_param_descriptions_are_provider_agnostic(mcp_tools):
         else:
             desc = _prop(search_schema, field)["description"].lower()
         for phrase in _PROVIDER_NOISE:
-            assert phrase not in desc, f"{field} still names a vendor: {phrase!r} in {desc!r}"
+            assert phrase not in desc, (
+                f"{field} still names a vendor: {phrase!r} in {desc!r}"
+            )
 
     provider_search = _prop(search_schema, "provider")["description"].lower()
     provider_extract = _prop(extract_schema, "provider")["description"].lower()

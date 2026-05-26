@@ -62,7 +62,9 @@ class FirecrawlSearchProvider:
             resp.raise_for_status()
             data = resp.json()
         except httpx.HTTPStatusError as e:
-            raise ProviderError(f"firecrawl search returned HTTP {e.response.status_code}") from e
+            raise ProviderError(
+                f"firecrawl search returned HTTP {e.response.status_code}"
+            ) from e
         except httpx.HTTPError as e:
             raise ProviderError("firecrawl search request failed") from e
 

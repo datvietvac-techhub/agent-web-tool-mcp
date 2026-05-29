@@ -39,13 +39,22 @@ def test_load_providers_config_preserves_order(tmp_path, monkeypatch):
     )
     monkeypatch.setenv("PROVIDERS_CONFIG", str(path))
     cfg = load_providers_config()
-    assert [e.provider for e in cfg.web_search] == ["tavily", "firecrawl", "exa", "searxng"]
+    assert [e.provider for e in cfg.web_search] == [
+        "tavily",
+        "firecrawl",
+        "exa",
+        "searxng",
+    ]
     assert cfg.web_search[0].credential == "key-t"
 
 
 def test_entry_is_skipped_for_empty_saas_credential():
-    assert entry_is_skipped(ProviderEntry(provider="firecrawl", credential=""), "search")
-    assert not entry_is_skipped(ProviderEntry(provider="searxng", credential=""), "search")
+    assert entry_is_skipped(
+        ProviderEntry(provider="firecrawl", credential=""), "search"
+    )
+    assert not entry_is_skipped(
+        ProviderEntry(provider="searxng", credential=""), "search"
+    )
 
 
 def test_make_config_writes_fixed_chains(tmp_path):
@@ -73,8 +82,18 @@ def test_make_config_writes_fixed_chains(tmp_path):
     )
 
     cfg = load_providers_config(config)
-    assert [e.provider for e in cfg.web_search] == ["tavily", "firecrawl", "exa", "searxng"]
-    assert [e.provider for e in cfg.web_extract] == ["tavily", "firecrawl", "exa", "crawl4ai"]
+    assert [e.provider for e in cfg.web_search] == [
+        "tavily",
+        "firecrawl",
+        "exa",
+        "searxng",
+    ]
+    assert [e.provider for e in cfg.web_extract] == [
+        "tavily",
+        "firecrawl",
+        "exa",
+        "crawl4ai",
+    ]
     assert cfg.web_search[1].credential == "firecrawl-secret"
 
 
@@ -92,6 +111,11 @@ def test_make_config_yes_skips_saas_credentials(tmp_path):
     )
 
     cfg = load_providers_config(config)
-    assert [e.provider for e in cfg.web_search] == ["tavily", "firecrawl", "exa", "searxng"]
+    assert [e.provider for e in cfg.web_search] == [
+        "tavily",
+        "firecrawl",
+        "exa",
+        "searxng",
+    ]
     assert cfg.web_search[0].credential == ""
     assert cfg.web_search[2].credential == ""

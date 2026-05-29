@@ -153,8 +153,12 @@ def test_web_search_errors_are_values(monkeypatch):
 def test_web_search_explicit_provider_no_fallback(monkeypatch):
     client = FakeClient(
         get_responses=[
-            FakeResponse({"results": [{"title": "Local", "url": "https://local.test"}]}),
-            FakeResponse({"results": [{"title": "Should not run", "url": "https://x.test"}]}),
+            FakeResponse(
+                {"results": [{"title": "Local", "url": "https://local.test"}]}
+            ),
+            FakeResponse(
+                {"results": [{"title": "Should not run", "url": "https://x.test"}]}
+            ),
         ]
     )
     monkeypatch.setattr(provider_http, "_client", client)

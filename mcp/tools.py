@@ -10,7 +10,12 @@ import os
 from cachetools import TTLCache
 
 from providers.base import coerce_markdown, normalize_url
-from providers.chain import run_extract_chain, run_extract_provider, run_search_chain, run_search_provider
+from providers.chain import (
+    run_extract_chain,
+    run_extract_provider,
+    run_search_chain,
+    run_search_provider,
+)
 from providers.http import MAX_URLS_PER_CALL
 from url_policy import validate_fetch_url
 
@@ -63,7 +68,9 @@ async def web_search_impl(
             provider_id, query, num_results, categories, language, time_range
         )
     else:
-        out = await run_search_chain(query, num_results, categories, language, time_range)
+        out = await run_search_chain(
+            query, num_results, categories, language, time_range
+        )
     if _search_cache is not None and "error" not in out:
         _search_cache[cache_key] = out
     return out
@@ -118,7 +125,11 @@ async def web_extractor_impl(
 
         norm = normalize_url(url)
         cache_key = (norm, mode, query, provider_id)
-        if not bypass_cache and _extract_cache is not None and cache_key in _extract_cache:
+        if (
+            not bypass_cache
+            and _extract_cache is not None
+            and cache_key in _extract_cache
+        ):
             results.append(_extract_cache[cache_key])
             continue
 
@@ -130,16 +141,21 @@ async def web_extractor_impl(
         return {"results": results}
 
     if provider_id:
-        fetched = await run_extract_provider(provider_id, fetch_urls, mode, query, bypass_cache)
+        fetched = await run_extract_provider(
+            provider_id, fetch_urls, mode, query, bypass_cache
+        )
     else:
         fetched = await run_extract_chain(fetch_urls, mode, query, bypass_cache)
     for pos, url, item in zip(
         fetch_positions, fetch_urls, fetched.get("results", []), strict=False
     ):
         results[pos] = item
-        if not bypass_cache and _extract_cache is not None and item.get("markdown") and item.get(
-            "status"
-        ) == "ok":
+        if (
+            not bypass_cache
+            and _extract_cache is not None
+            and item.get("markdown")
+            and item.get("status") == "ok"
+        ):
             _extract_cache[(normalize_url(url), mode, query, provider_id)] = item
 
     out: dict = {"results": results}

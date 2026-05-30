@@ -46,7 +46,9 @@ class ExaSearchProvider:
             resp.raise_for_status()
             data = resp.json()
         except httpx.HTTPStatusError as e:
-            raise ProviderError(f"exa search returned HTTP {e.response.status_code}") from e
+            raise ProviderError(
+                f"exa search returned HTTP {e.response.status_code}"
+            ) from e
         except httpx.HTTPError as e:
             raise ProviderError("exa search request failed") from e
 
@@ -107,7 +109,9 @@ class ExaExtractProvider:
             resp.raise_for_status()
             data = resp.json()
         except httpx.HTTPStatusError as e:
-            raise ProviderError(f"exa contents returned HTTP {e.response.status_code}") from e
+            raise ProviderError(
+                f"exa contents returned HTTP {e.response.status_code}"
+            ) from e
         except httpx.HTTPError as e:
             raise ProviderError("exa contents request failed") from e
 

@@ -28,7 +28,9 @@ def normalize_url(url: str) -> str:
     try:
         parts = urlsplit(url.strip())
         path = parts.path.rstrip("/") or "/"
-        return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), path, parts.query, ""))
+        return urlunsplit(
+            (parts.scheme.lower(), parts.netloc.lower(), path, parts.query, "")
+        )
     except Exception:
         return url.strip()
 
@@ -37,7 +39,12 @@ def coerce_markdown(value) -> str:
     if isinstance(value, str):
         return value
     if isinstance(value, dict):
-        return value.get("fit_markdown") or value.get("raw_markdown") or value.get("markdown") or ""
+        return (
+            value.get("fit_markdown")
+            or value.get("raw_markdown")
+            or value.get("markdown")
+            or ""
+        )
     return ""
 
 

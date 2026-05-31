@@ -5,6 +5,7 @@ Thin FastAPI layer: validates requests, optional bearer auth, delegates to
 """
 
 import os
+import secrets
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Security, status
@@ -87,7 +88,9 @@ def _require_api_token(
 ) -> None:
     if not API_TOKEN:
         return
-    if credentials is None or credentials.credentials != API_TOKEN:
+    if credentials is None or not secrets.compare_digest(
+        credentials.credentials, API_TOKEN
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid or missing bearer token",

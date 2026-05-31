@@ -15,7 +15,11 @@ EXTRACT_TIMEOUT = float(os.environ.get("EXTRACT_TIMEOUT", "60"))
 MAX_CONCURRENCY = int(os.environ.get("MAX_CONCURRENCY", "5"))
 MAX_URLS_PER_CALL = 20
 
-FALLBACK_VERBOSE = os.environ.get("FALLBACK_VERBOSE", "").lower() in ("1", "true", "yes")
+FALLBACK_VERBOSE = os.environ.get("FALLBACK_VERBOSE", "").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 _client: httpx.AsyncClient | None = None
 

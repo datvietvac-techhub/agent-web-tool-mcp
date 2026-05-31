@@ -69,7 +69,9 @@ class TavilySearchProvider:
             resp.raise_for_status()
             data = resp.json()
         except httpx.HTTPStatusError as e:
-            raise ProviderError(f"tavily search returned HTTP {e.response.status_code}") from e
+            raise ProviderError(
+                f"tavily search returned HTTP {e.response.status_code}"
+            ) from e
         except httpx.HTTPError as e:
             raise ProviderError("tavily search request failed") from e
 
@@ -133,7 +135,9 @@ class TavilyExtractProvider:
             resp.raise_for_status()
             data = resp.json()
         except httpx.HTTPStatusError as e:
-            raise ProviderError(f"tavily extract returned HTTP {e.response.status_code}") from e
+            raise ProviderError(
+                f"tavily extract returned HTTP {e.response.status_code}"
+            ) from e
         except httpx.HTTPError as e:
             raise ProviderError("tavily extract request failed") from e
 

@@ -11,3 +11,8 @@
 **Vulnerability:** The SSRF protection logic in `url_policy.py` validated hostnames directly from `urllib.parse.urlsplit` without stripping trailing dots. Hostnames ending with a dot (e.g. `localhost.` or `127.0.0.1.`) would bypass strict string matching (`== "localhost"`) and cause `socket.getaddrinfo()` to fail (which was caught and allowed as "fail-open"). The underlying HTTP client could still resolve and connect to the internal IP.
 **Learning:** Fully Qualified Domain Names (FQDNs) with a trailing root dot bypass naive blocklists. Trailing dots can also break naive DNS validation wrappers depending on the OS resolver implementation while still being parsed successfully by the target HTTP client.
 **Prevention:** Always normalize the hostname by calling `.rstrip('.')` on the parsed hostname string before performing validation checks or DNS resolution in SSRF protections.
+
+## 2024-05-31 - [CRITICAL] Prevented Timing Attack in API Token Verification
+**Vulnerability:** The API token verification in `mcp/api.py` was using standard equality (`credentials.credentials != API_TOKEN`) to compare secrets. This type of comparison returns early on the first mismatched character, creating a timing side-channel that allows attackers to sequentially guess the API token by measuring response times.
+**Learning:** Comparing sensitive tokens, hashes, or passwords using standard string equality (`==` or `!=`) introduces timing attacks.
+**Prevention:** Always use `secrets.compare_digest()` for comparing sensitive strings. This function takes a constant amount of time regardless of whether the strings match or not.

@@ -47,7 +47,9 @@ def test_search_fallback_on_primary_hard_failure(monkeypatch):
             calls.append(url)
             return FakeResponse(
                 {
-                    "results": [{"title": "Local", "url": "https://local.test", "content": "x"}],
+                    "results": [
+                        {"title": "Local", "url": "https://local.test", "content": "x"}
+                    ],
                     "suggestions": [],
                     "answers": [],
                 }
@@ -57,7 +59,11 @@ def test_search_fallback_on_primary_hard_failure(monkeypatch):
             calls.append(url)
             if urlparse(url).hostname == "api.tavily.com":
                 response = httpx.Response(503, request=httpx.Request("POST", url))
-                raise httpx.HTTPStatusError("fail", request=kwargs.get("request") or httpx.Request("POST", url), response=response)
+                raise httpx.HTTPStatusError(
+                    "fail",
+                    request=kwargs.get("request") or httpx.Request("POST", url),
+                    response=response,
+                )
             raise AssertionError(f"unexpected post to {url}")
 
     monkeypatch.setattr(provider_http, "_client", RoutingClient())
